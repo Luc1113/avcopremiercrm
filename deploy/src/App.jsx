@@ -30,21 +30,17 @@ import {
   Mail, 
   DollarSign,
   Calendar,
-  Tag,
   X,
   Edit2,
   Trash2,
   FileText,
-  BarChart3
+  BarChart3,
+  Sparkles,
+  Moon,
+  Sun
 } from 'lucide-react';
 
-// Firebase configuration - YOU NEED TO REPLACE THIS
-// Import the functions you need from the SDKs you need
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBbhAsz3vIbac1nfkFTJAQ2R6_5hU30DJs",
   authDomain: "avcopremiercrm.firebaseapp.com",
@@ -57,28 +53,26 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Initialize Firebase
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// Stage configuration
+// Stage configuration with modern colors
 const STAGES = [
-  { id: 'Leads', name: 'Leads', color: 'bg-blue-100' },
-  { id: 'Ready For Onboarding', name: 'Ready For Onboarding', color: 'bg-purple-100' },
-  { id: 'Stuck', name: 'Stuck', color: 'bg-yellow-100' },
-  { id: 'Live', name: 'Live', color: 'bg-green-100' },
-  { id: 'Post Launch, need of marketing', name: 'Post Launch, Need Marketing', color: 'bg-pink-100' }
+  { id: 'Leads', name: 'Leads', color: 'from-blue-400 to-blue-600', bgColor: 'bg-blue-50 dark:bg-blue-900/20' },
+  { id: 'Ready For Onboarding', name: 'Ready For Onboarding', color: 'from-purple-400 to-purple-600', bgColor: 'bg-purple-50 dark:bg-purple-900/20' },
+  { id: 'Stuck', name: 'Stuck', color: 'from-amber-400 to-amber-600', bgColor: 'bg-amber-50 dark:bg-amber-900/20' },
+  { id: 'Live', name: 'Live', color: 'from-emerald-400 to-emerald-600', bgColor: 'bg-emerald-50 dark:bg-emerald-900/20' },
+  { id: 'Post Launch, need of marketing', name: 'Post Launch', color: 'from-pink-400 to-pink-600', bgColor: 'bg-pink-50 dark:bg-pink-900/20' }
 ];
 
-// Label configuration with colors
+// Label configuration with modern colors
 const LABEL_OPTIONS = [
-  { id: 'Missing Tablet', name: 'Missing Tablet', color: 'bg-red-500' },
-  { id: 'Missing Website Setup', name: 'Missing Website Setup', color: 'bg-orange-500' },
-  { id: 'Missing Stripe', name: 'Missing Stripe', color: 'bg-yellow-500' },
-  { id: 'Missing Restaurant Info', name: 'Missing Restaurant Info', color: 'bg-blue-500' },
-  { id: 'Missing Menu', name: 'Missing Menu', color: 'bg-purple-500' }
+  { id: 'Missing Tablet', name: 'Missing Tablet', color: 'bg-gradient-to-r from-red-500 to-red-600' },
+  { id: 'Missing Website Setup', name: 'Missing Website Setup', color: 'bg-gradient-to-r from-orange-500 to-orange-600' },
+  { id: 'Missing Stripe', name: 'Missing Stripe', color: 'bg-gradient-to-r from-yellow-500 to-yellow-600' },
+  { id: 'Missing Restaurant Info', name: 'Missing Restaurant Info', color: 'bg-gradient-to-r from-blue-500 to-blue-600' },
+  { id: 'Missing Menu', name: 'Missing Menu', color: 'bg-gradient-to-r from-purple-500 to-purple-600' }
 ];
 
 const ACTIVITY_TYPES = ['Call', 'Meeting', 'Email', 'Note', 'Task'];
@@ -101,17 +95,32 @@ function App() {
   const [editingAccount, setEditingAccount] = useState(null);
   const [selectedAccountForDetail, setSelectedAccountForDetail] = useState(null);
 
+  // Dark mode state
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  // Dark mode effect
+  useEffect(() => {
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
   // Auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // Check if user is in team members, if not add them
         const teamRef = collection(db, 'teamMembers');
         const q = query(teamRef, where('email', '==', currentUser.email));
-        const unsubTeam = onSnapshot(q, (snapshot) => {
+        onSnapshot(q, (snapshot) => {
           if (snapshot.empty) {
-            // Add user as first admin or regular member
             addDoc(collection(db, 'teamMembers'), {
               email: currentUser.email,
               displayName: currentUser.displayName,
@@ -131,7 +140,6 @@ function App() {
   useEffect(() => {
     if (!user) return;
 
-    // Accounts listener
     const accountsQuery = query(collection(db, 'accounts'), orderBy('createdAt', 'desc'));
     const unsubAccounts = onSnapshot(accountsQuery, (snapshot) => {
       const accountsData = snapshot.docs.map(doc => ({
@@ -141,7 +149,6 @@ function App() {
       setAccounts(accountsData);
     });
 
-    // Contacts listener
     const contactsQuery = query(collection(db, 'contacts'), orderBy('createdAt', 'desc'));
     const unsubContacts = onSnapshot(contactsQuery, (snapshot) => {
       const contactsData = snapshot.docs.map(doc => ({
@@ -151,7 +158,6 @@ function App() {
       setContacts(contactsData);
     });
 
-    // Activities listener
     const activitiesQuery = query(collection(db, 'activities'), orderBy('date', 'desc'));
     const unsubActivities = onSnapshot(activitiesQuery, (snapshot) => {
       const activitiesData = snapshot.docs.map(doc => ({
@@ -161,7 +167,6 @@ function App() {
       setActivities(activitiesData);
     });
 
-    // Sales listener
     const salesQuery = query(collection(db, 'sales'), orderBy('date', 'desc'));
     const unsubSales = onSnapshot(salesQuery, (snapshot) => {
       const salesData = snapshot.docs.map(doc => ({
@@ -171,7 +176,6 @@ function App() {
       setSales(salesData);
     });
 
-    // Team members listener
     const teamQuery = query(collection(db, 'teamMembers'), orderBy('joinedAt', 'asc'));
     const unsubTeam = onSnapshot(teamQuery, (snapshot) => {
       const teamData = snapshot.docs.map(doc => ({
@@ -190,7 +194,6 @@ function App() {
     };
   }, [user]);
 
-  // Sign in with Google
   const handleSignIn = async () => {
     try {
       await signInWithPopup(auth, provider);
@@ -200,7 +203,6 @@ function App() {
     }
   };
 
-  // Sign out
   const handleSignOut = async () => {
     try {
       await signOut(auth);
@@ -209,7 +211,6 @@ function App() {
     }
   };
 
-  // Add or update account
   const handleSaveAccount = async (accountData) => {
     try {
       if (editingAccount) {
@@ -234,9 +235,8 @@ function App() {
     }
   };
 
-  // Delete account
   const handleDeleteAccount = async (accountId) => {
-    if (!window.confirm('Are you sure you want to delete this account? This action cannot be undone.')) {
+    if (!window.confirm('Are you sure you want to delete this account?')) {
       return;
     }
     try {
@@ -248,7 +248,6 @@ function App() {
     }
   };
 
-  // Add contact
   const handleAddContact = async (contactData) => {
     try {
       await addDoc(collection(db, 'contacts'), {
@@ -264,7 +263,6 @@ function App() {
     }
   };
 
-  // Add activity
   const handleAddActivity = async (activityData) => {
     try {
       await addDoc(collection(db, 'activities'), {
@@ -280,7 +278,6 @@ function App() {
     }
   };
 
-  // Add sale
   const handleAddSale = async (saleData) => {
     try {
       await addDoc(collection(db, 'sales'), {
@@ -296,7 +293,6 @@ function App() {
     }
   };
 
-  // Handle drag end
   const handleDragEnd = async (result) => {
     if (!result.destination) return;
 
@@ -315,105 +311,137 @@ function App() {
     }
   };
 
-  // Calculate dashboard stats
-  const calculateStats = () => {
-    const totalValue = accounts.reduce((sum, acc) => sum + (acc.value || 0), 0);
-    const totalSales = sales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
-    const stageDistribution = STAGES.map(stage => ({
-      stage: stage.name,
-      count: accounts.filter(acc => acc.stage === stage.id).length,
-      value: accounts.filter(acc => acc.stage === stage.id).reduce((sum, acc) => sum + (acc.value || 0), 0)
-    }));
-
-    return { totalValue, totalSales, stageDistribution };
-  };
-
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading...</div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">Loading...</p>
+        </div>
       </div>
     );
   }
 
-  // Login screen
+  // Login screen with dark mode
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800 flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-300">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -left-40 w-80 h-80 bg-white dark:bg-gray-600 opacity-10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute top-60 -right-40 w-96 h-96 bg-white dark:bg-gray-600 opacity-10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+          <div className="absolute -bottom-40 left-1/3 w-80 h-80 bg-white dark:bg-gray-600 opacity-10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+        </div>
+
+        <div className="relative bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-2xl p-10 max-w-md w-full border border-white/20 dark:border-gray-700/50 transform transition-all hover:scale-105 duration-300">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">Avco Premier CRM</h1>
-            <p className="text-gray-600">Restaurant Onboarding Management</p>
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4 animate-bounce">
+              <Sparkles className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+              Avco Premier CRM
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300 font-medium">Restaurant Onboarding Management</p>
           </div>
+          
           <button
             onClick={handleSignIn}
-            className="w-full bg-white border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition flex items-center justify-center gap-3"
+            className="w-full bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 px-6 py-4 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 group"
           >
-            <svg className="w-6 h-6" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            Sign in with Google
+            <span className="text-lg">Sign in with Google</span>
           </button>
-          <p className="text-sm text-gray-500 mt-4 text-center">
-            Sign in with your Google account to access the CRM
+          
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-6 text-center">
+            Secure authentication powered by Google
           </p>
         </div>
       </div>
     );
   }
 
-  // Main application
+  // Main application with dark mode
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-full mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-gray-800">Avco Premier CRM</h1>
-            <button
-              onClick={() => setShowDashboard(!showDashboard)}
-              className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
-                showDashboard 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              Dashboard
-            </button>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setShowAccountModal(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              New Account
-            </button>
-            <button
-              onClick={() => setShowTeamModal(true)}
-              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition flex items-center gap-2"
-            >
-              <Users className="w-4 h-4" />
-              Team ({teamMembers.length})
-            </button>
-            <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
-              <img 
-                src={user.photoURL} 
-                alt={user.displayName} 
-                className="w-8 h-8 rounded-full"
-              />
-              <span className="text-sm text-gray-700">{user.displayName}</span>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-slate-900 dark:to-gray-900 transition-colors duration-300">
+      {/* Modern Header with glassmorphism and dark mode */}
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg border-b border-gray-200/50 dark:border-gray-700/50 transition-colors duration-300">
+        <div className="max-w-full mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Avco Premier CRM
+                </h1>
+              </div>
+              
               <button
-                onClick={handleSignOut}
-                className="text-gray-500 hover:text-gray-700 transition"
+                onClick={() => setShowDashboard(!showDashboard)}
+                className={`px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 transform hover:scale-105 ${
+                  showDashboard 
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
               >
-                <LogOut className="w-5 h-5" />
+                <BarChart3 className="w-4 h-4" />
+                Dashboard
               </button>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="relative w-14 h-7 bg-gray-200 dark:bg-gray-700 rounded-full p-0.5 transition-all duration-300 hover:scale-110 shadow-lg"
+                title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                <div className={`absolute top-0.5 w-6 h-6 bg-white dark:bg-gray-900 rounded-full shadow-lg transform transition-all duration-300 flex items-center justify-center ${isDarkMode ? 'translate-x-7' : 'translate-x-0'}`}>
+                  {isDarkMode ? <Moon className="w-3 h-3 text-blue-400" /> : <Sun className="w-3 h-3 text-yellow-500" />}
+                </div>
+              </button>
+
+              <button
+                onClick={() => setShowAccountModal(true)}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                <Plus className="w-5 h-5" />
+                New Account
+              </button>
+              
+              <button
+                onClick={() => setShowTeamModal(true)}
+                className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg"
+              >
+                <Users className="w-4 h-4" />
+                Team ({teamMembers.length})
+              </button>
+              
+              <div className="flex items-center gap-3 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
+                <div className="relative group">
+                  <img 
+                    src={user.photoURL} 
+                    alt={user.displayName} 
+                    className="w-10 h-10 rounded-full ring-2 ring-gray-200 dark:ring-gray-600 hover:ring-blue-500 dark:hover:ring-blue-400 transition-all cursor-pointer transform hover:scale-110"
+                  />
+                  <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+                </div>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 hidden md:block">{user.displayName}</span>
+                <button
+                  onClick={handleSignOut}
+                  className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -421,7 +449,7 @@ function App() {
 
       {/* Dashboard View */}
       {showDashboard && (
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-6 py-8 animate-fade-in">
           <DashboardView 
             accounts={accounts} 
             sales={sales} 
@@ -433,9 +461,9 @@ function App() {
 
       {/* Kanban Board */}
       {!showDashboard && (
-        <div className="p-4 overflow-x-auto">
+        <div className="p-6 overflow-x-auto">
           <DragDropContext onDragEnd={handleDragEnd}>
-            <div className="flex gap-4 min-w-max pb-4">
+            <div className="flex gap-6 min-w-max pb-4">
               {STAGES.map((stage) => (
                 <StageColumn
                   key={stage.id}
@@ -550,36 +578,94 @@ function App() {
           }}
         />
       )}
+
+      {/* Add custom styles for animations and dark mode */}
+      <style>{`
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+        
+        @keyframes slide-up {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-slide-up {
+          animation: slide-up 0.4s ease-out;
+        }
+        
+        @keyframes scale-in {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        
+        .animate-scale-in {
+          animation: scale-in 0.2s ease-out;
+        }
+
+        /* Dark mode scrollbar */
+        .dark ::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .dark ::-webkit-scrollbar-track {
+          background: #1e293b;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+          background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+          border-radius: 4px;
+        }
+
+        .dark ::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(to bottom, #2563eb, #7c3aed);
+        }
+
+        /* Smooth transitions */
+        * {
+          transition-property: background-color, border-color, color, fill, stroke;
+          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+          transition-duration: 300ms;
+        }
+      `}</style>
     </div>
   );
 }
 
-// Stage Column Component
+// Modern Stage Column Component
 function StageColumn({ stage, accounts, onEditAccount, onViewAccount, onAddContact, onAddActivity, onAddSale }) {
   const totalValue = accounts.reduce((sum, acc) => sum + (acc.value || 0), 0);
 
   return (
-    <div className="w-80 flex-shrink-0">
-      <div className={`${stage.color} rounded-t-lg p-3 border-b-2 border-gray-300`}>
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-800">{stage.name}</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">{accounts.length}</span>
+    <div className="w-80 flex-shrink-0 animate-fade-in">
+      <div className={`bg-gradient-to-r ${stage.color} rounded-2xl p-4 shadow-lg mb-4`}>
+        <div className="flex items-center justify-between text-white">
+          <h3 className="font-bold text-lg">{stage.name}</h3>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold bg-white/20 backdrop-blur px-3 py-1 rounded-full">
+              {accounts.length}
+            </span>
             {totalValue > 0 && (
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-bold bg-white/30 backdrop-blur px-3 py-1 rounded-full">
                 ${totalValue.toLocaleString()}
               </span>
             )}
           </div>
         </div>
       </div>
+      
       <Droppable droppableId={stage.id}>
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`${stage.color} min-h-screen p-2 transition-colors ${
-              snapshot.isDraggingOver ? 'bg-opacity-70' : 'bg-opacity-30'
+            className={`${stage.bgColor} min-h-[600px] p-3 rounded-2xl transition-all duration-300 ${
+              snapshot.isDraggingOver ? 'ring-4 ring-blue-400 ring-opacity-50 bg-opacity-70' : 'bg-opacity-40 dark:bg-opacity-20'
             }`}
           >
             {accounts.map((account, index) => (
@@ -589,7 +675,9 @@ function StageColumn({ stage, accounts, onEditAccount, onViewAccount, onAddConta
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
-                    className={`mb-2 ${snapshot.isDragging ? 'rotate-2' : ''}`}
+                    className={`mb-3 transition-all duration-200 ${
+                      snapshot.isDragging ? 'rotate-3 scale-105' : 'hover:scale-102'
+                    }`}
                   >
                     <AccountCard
                       account={account}
@@ -611,21 +699,21 @@ function StageColumn({ stage, accounts, onEditAccount, onViewAccount, onAddConta
   );
 }
 
-// Account Card Component
+// Modern Account Card Component with animations
 function AccountCard({ account, onEdit, onView, onAddContact, onAddActivity, onAddSale }) {
   return (
-    <div className="bg-gray-800 text-white rounded-lg p-4 shadow-md hover:shadow-lg transition cursor-pointer">
+    <div className="bg-gradient-to-br from-gray-800 to-gray-900 text-white rounded-xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer border border-gray-700 hover:border-gray-600 group">
       <div onClick={() => onView(account)}>
-        <h4 className="font-semibold mb-2 text-lg">{account.name}</h4>
+        <h4 className="font-bold mb-3 text-xl group-hover:text-blue-400 transition-colors">{account.name}</h4>
         
         {account.labels && account.labels.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
+          <div className="flex flex-wrap gap-2 mb-4">
             {account.labels.map((label) => {
               const labelConfig = LABEL_OPTIONS.find(l => l.id === label);
               return (
                 <span
                   key={label}
-                  className={`${labelConfig?.color || 'bg-gray-500'} text-white text-xs px-2 py-1 rounded-full`}
+                  className={`${labelConfig?.color || 'bg-gradient-to-r from-gray-500 to-gray-600'} text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md`}
                 >
                   {labelConfig?.name || label}
                 </span>
@@ -634,39 +722,39 @@ function AccountCard({ account, onEdit, onView, onAddContact, onAddActivity, onA
           </div>
         )}
 
-        <div className="space-y-1 text-sm text-gray-300 mb-3">
+        <div className="space-y-2 text-sm text-gray-300 mb-4">
           {account.email && (
-            <div className="flex items-center gap-2">
-              <Mail className="w-3 h-3" />
+            <div className="flex items-center gap-2 hover:text-white transition-colors">
+              <Mail className="w-4 h-4" />
               <span className="truncate">{account.email}</span>
             </div>
           )}
           {account.phone && (
-            <div className="flex items-center gap-2">
-              <Phone className="w-3 h-3" />
+            <div className="flex items-center gap-2 hover:text-white transition-colors">
+              <Phone className="w-4 h-4" />
               <span>{account.phone}</span>
             </div>
           )}
           {account.value > 0 && (
-            <div className="flex items-center gap-2 text-green-400 font-medium">
-              <DollarSign className="w-3 h-3" />
+            <div className="flex items-center gap-2 text-green-400 font-bold text-base">
+              <DollarSign className="w-4 h-4" />
               <span>${account.value.toLocaleString()}</span>
             </div>
           )}
         </div>
 
         {account.notes && (
-          <p className="text-xs text-gray-400 mb-3 line-clamp-2">{account.notes}</p>
+          <p className="text-xs text-gray-400 mb-4 line-clamp-2 italic border-l-2 border-gray-700 pl-3">{account.notes}</p>
         )}
       </div>
 
-      <div className="flex gap-2 pt-3 border-t border-gray-700">
+      <div className="flex gap-2 pt-4 border-t border-gray-700">
         <button
           onClick={(e) => {
             e.stopPropagation();
             onEdit(account);
           }}
-          className="flex-1 bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded text-xs transition"
+          className="flex-1 bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 transform hover:scale-105"
         >
           Edit
         </button>
@@ -675,7 +763,7 @@ function AccountCard({ account, onEdit, onView, onAddContact, onAddActivity, onA
             e.stopPropagation();
             onAddActivity(account);
           }}
-          className="flex-1 bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded text-xs transition"
+          className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
         >
           Log Activity
         </button>
@@ -711,20 +799,21 @@ function AccountModal({ account, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-800">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-scale-in">
+        <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-purple-600 px-8 py-6 flex items-center justify-between rounded-t-3xl">
+          <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+            <Sparkles className="w-8 h-8" />
             {account ? 'Edit Account' : 'New Account'}
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button onClick={onClose} className="text-white hover:bg-white/20 rounded-full p-2 transition-all">
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-8 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
               Restaurant/Company Name *
             </label>
             <input
@@ -732,37 +821,40 @@ function AccountModal({ account, onClose, onSave }) {
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none font-medium"
+              placeholder="Enter company name"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Email</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none"
+                placeholder="email@example.com"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Phone</label>
               <input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none"
+                placeholder="+1 (555) 000-0000"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Stage</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Stage</label>
             <select
               value={formData.stage}
               onChange={(e) => setFormData({ ...formData, stage: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none font-medium"
             >
               {STAGES.map(stage => (
                 <option key={stage.id} value={stage.id}>{stage.name}</option>
@@ -771,17 +863,17 @@ function AccountModal({ account, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Labels</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-3">Labels</label>
             <div className="flex flex-wrap gap-2">
               {LABEL_OPTIONS.map(label => (
                 <button
                   key={label.id}
                   type="button"
                   onClick={() => toggleLabel(label.id)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition ${
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 transform hover:scale-105 ${
                     formData.labels.includes(label.id)
-                      ? `${label.color} text-white`
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      ? `${label.color} text-white shadow-lg`
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
                 >
                   {label.name}
@@ -791,7 +883,7 @@ function AccountModal({ account, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
               Potential Deal Value ($)
             </label>
             <input
@@ -800,17 +892,19 @@ function AccountModal({ account, onClose, onSave }) {
               step="0.01"
               value={formData.value}
               onChange={(e) => setFormData({ ...formData, value: parseFloat(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none font-medium"
+              placeholder="0.00"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Notes</label>
             <textarea
               rows="4"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none resize-none"
+              placeholder="Additional notes..."
             />
           </div>
 
@@ -818,13 +912,13 @@ function AccountModal({ account, onClose, onSave }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              className="flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-all font-semibold"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
               {account ? 'Update' : 'Create'} Account
             </button>
@@ -852,68 +946,75 @@ function ContactModal({ accountId, accountName, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full">
-        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">Add Contact</h2>
-            <p className="text-sm text-gray-600">For: {accountName}</p>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-lg w-full animate-scale-in">
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-8 py-6 rounded-t-3xl">
+          <div className="flex items-center justify-between text-white">
+            <div>
+              <h2 className="text-2xl font-bold">Add Contact</h2>
+              <p className="text-blue-100 text-sm mt-1">For: {accountName}</p>
+            </div>
+            <button onClick={onClose} className="hover:bg-white/20 rounded-full p-2 transition-all">
+              <X className="w-6 h-6" />
+            </button>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X className="w-6 h-6" />
-          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-8 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Name *</label>
             <input
               type="text"
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none"
+              placeholder="Contact name"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Email</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none"
+                placeholder="email@example.com"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Phone</label>
               <input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none"
+                placeholder="+1 555 000 0000"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title/Role</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Title/Role</label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none"
+              placeholder="e.g. Owner, Manager"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Notes</label>
             <textarea
               rows="3"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none resize-none"
+              placeholder="Additional notes..."
             />
           </div>
 
@@ -921,13 +1022,13 @@ function ContactModal({ accountId, accountName, onClose, onSave }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              className="flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-all font-semibold"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all font-semibold shadow-lg"
             >
               Add Contact
             </button>
@@ -952,25 +1053,27 @@ function ActivityModal({ accountId, accountName, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full">
-        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">Log Activity</h2>
-            <p className="text-sm text-gray-600">For: {accountName}</p>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-lg w-full animate-scale-in">
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-8 py-6 rounded-t-3xl">
+          <div className="flex items-center justify-between text-white">
+            <div>
+              <h2 className="text-2xl font-bold">Log Activity</h2>
+              <p className="text-blue-100 text-sm mt-1">For: {accountName}</p>
+            </div>
+            <button onClick={onClose} className="hover:bg-white/20 rounded-full p-2 transition-all">
+              <X className="w-6 h-6" />
+            </button>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X className="w-6 h-6" />
-          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-8 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Activity Type *</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Activity Type *</label>
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none font-medium"
             >
               {ACTIVITY_TYPES.map(type => (
                 <option key={type} value={type}>{type}</option>
@@ -979,14 +1082,14 @@ function ActivityModal({ accountId, accountName, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes *</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Notes *</label>
             <textarea
-              rows="4"
+              rows="5"
               required
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="What happened? What was discussed?"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none resize-none"
             />
           </div>
 
@@ -994,13 +1097,13 @@ function ActivityModal({ accountId, accountName, onClose, onSave }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              className="flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-all font-semibold"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all font-semibold shadow-lg"
             >
               Log Activity
             </button>
@@ -1026,22 +1129,24 @@ function SaleModal({ accountId, accountName, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full">
-        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">Record Sale</h2>
-            <p className="text-sm text-gray-600">For: {accountName}</p>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-lg w-full animate-scale-in">
+        <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-6 rounded-t-3xl">
+          <div className="flex items-center justify-between text-white">
+            <div>
+              <h2 className="text-2xl font-bold">Record Sale</h2>
+              <p className="text-green-100 text-sm mt-1">For: {accountName}</p>
+            </div>
+            <button onClick={onClose} className="hover:bg-white/20 rounded-full p-2 transition-all">
+              <X className="w-6 h-6" />
+            </button>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X className="w-6 h-6" />
-          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-8 space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($) *</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Amount ($) *</label>
               <input
                 type="number"
                 min="0"
@@ -1049,29 +1154,31 @@ function SaleModal({ accountId, accountName, onClose, onSave }) {
                 required
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-green-200 dark:focus:ring-green-800 focus:border-green-500 dark:focus:border-green-400 transition-all outline-none font-medium"
+                placeholder="0.00"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Product/Service *</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Product/Service *</label>
               <input
                 type="text"
                 required
                 value={formData.product}
                 onChange={(e) => setFormData({ ...formData, product: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-green-200 dark:focus:ring-green-800 focus:border-green-500 dark:focus:border-green-400 transition-all outline-none"
+                placeholder="Product name"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Notes</label>
             <textarea
               rows="3"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Additional details about this sale..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:ring-4 focus:ring-green-200 dark:focus:ring-green-800 focus:border-green-500 dark:focus:border-green-400 transition-all outline-none resize-none"
             />
           </div>
 
@@ -1079,13 +1186,13 @@ function SaleModal({ accountId, accountName, onClose, onSave }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              className="flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-all font-semibold"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all font-semibold shadow-lg"
             >
               Record Sale
             </button>
@@ -1098,7 +1205,6 @@ function SaleModal({ accountId, accountName, onClose, onSave }) {
 
 // Team Modal Component
 function TeamModal({ teamMembers, onClose }) {
-  const [showInvite, setShowInvite] = useState(false);
   const inviteUrl = window.location.origin;
 
   const copyInviteLink = () => {
@@ -1107,31 +1213,34 @@ function TeamModal({ teamMembers, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-800">Team Members</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto animate-scale-in">
+        <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-purple-600 px-8 py-6 flex items-center justify-between rounded-t-3xl">
+          <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+            <Users className="w-8 h-8" />
+            Team Members
+          </h2>
+          <button onClick={onClose} className="text-white hover:bg-white/20 rounded-full p-2 transition-all">
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="p-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-blue-900 mb-2">Invite Team Members</h3>
-            <p className="text-sm text-blue-800 mb-3">
+        <div className="p-8">
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-800 border-2 border-blue-200 dark:border-gray-600 rounded-2xl p-6 mb-6">
+            <h3 className="font-bold text-blue-900 dark:text-gray-200 mb-2 text-lg">Invite Team Members</h3>
+            <p className="text-sm text-blue-800 dark:text-gray-400 mb-4">
               Share this link with your team. Anyone with a Google account can sign in and access the CRM.
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <input
                 type="text"
                 value={inviteUrl}
                 readOnly
-                className="flex-1 px-3 py-2 bg-white border border-blue-300 rounded-lg text-sm"
+                className="flex-1 px-4 py-3 bg-white dark:bg-gray-700 border-2 border-blue-300 dark:border-gray-600 rounded-xl text-sm font-medium"
               />
               <button
                 onClick={copyInviteLink}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all text-sm font-bold shadow-lg transform hover:scale-105"
               >
                 Copy Link
               </button>
@@ -1142,18 +1251,21 @@ function TeamModal({ teamMembers, onClose }) {
             {teamMembers.map((member) => (
               <div
                 key={member.id}
-                className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200"
+                className="flex items-center gap-4 p-5 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-700 dark:to-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-400 transition-all"
               >
-                <img
-                  src={member.photoURL}
-                  alt={member.displayName}
-                  className="w-12 h-12 rounded-full"
-                />
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-800">{member.displayName}</h4>
-                  <p className="text-sm text-gray-600">{member.email}</p>
+                <div className="relative">
+                  <img
+                    src={member.photoURL}
+                    alt={member.displayName}
+                    className="w-14 h-14 rounded-full ring-4 ring-white dark:ring-gray-800 shadow-lg"
+                  />
+                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
                 </div>
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                <div className="flex-1">
+                  <h4 className="font-bold text-gray-800 dark:text-gray-200 text-lg">{member.displayName}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{member.email}</p>
+                </div>
+                <span className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl text-sm font-bold shadow-md">
                   {member.role}
                 </span>
               </div>
@@ -1181,18 +1293,18 @@ function AccountDetailModal({
   const totalSales = sales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-scale-in">
+        <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-purple-600 px-8 py-6 rounded-t-3xl">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-gray-800 mb-1">{account.name}</h2>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+              <h2 className="text-3xl font-bold text-white mb-2">{account.name}</h2>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="px-3 py-1 bg-white/30 backdrop-blur text-white rounded-lg font-semibold">
                   {STAGES.find(s => s.id === account.stage)?.name}
                 </span>
                 {account.value > 0 && (
-                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded font-medium">
+                  <span className="px-3 py-1 bg-white/30 backdrop-blur text-white rounded-lg font-bold">
                     ${account.value.toLocaleString()} potential
                   </span>
                 )}
@@ -1201,53 +1313,53 @@ function AccountDetailModal({
             <div className="flex items-center gap-2">
               <button
                 onClick={onEdit}
-                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                className="p-2 text-white hover:bg-white/20 rounded-xl transition-all"
                 title="Edit"
               >
                 <Edit2 className="w-5 h-5" />
               </button>
               <button
                 onClick={() => onDelete(account.id)}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                className="p-2 text-white hover:bg-red-500/50 rounded-xl transition-all"
                 title="Delete"
               >
                 <Trash2 className="w-5 h-5" />
               </button>
-              <button onClick={onClose} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition">
+              <button onClick={onClose} className="p-2 text-white hover:bg-white/20 rounded-xl transition-all">
                 <X className="w-6 h-6" />
               </button>
             </div>
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-8 space-y-6">
           {/* Account Details */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="font-semibold text-gray-800 mb-3">Account Details</h3>
+          <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-700 dark:to-gray-800 rounded-2xl p-6 border-2 border-gray-200 dark:border-gray-600">
+            <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-4 text-lg">Account Details</h3>
             <div className="grid grid-cols-2 gap-4">
               {account.email && (
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Mail className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm">{account.email}</span>
+                <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                  <Mail className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-medium">{account.email}</span>
                 </div>
               )}
               {account.phone && (
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Phone className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm">{account.phone}</span>
+                <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                  <Phone className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-medium">{account.phone}</span>
                 </div>
               )}
             </div>
             {account.labels && account.labels.length > 0 && (
-              <div className="mt-3">
-                <div className="text-sm text-gray-600 mb-2">Labels:</div>
+              <div className="mt-4">
+                <div className="text-sm text-gray-600 dark:text-gray-400 font-semibold mb-2">Labels:</div>
                 <div className="flex flex-wrap gap-2">
                   {account.labels.map((label) => {
                     const labelConfig = LABEL_OPTIONS.find(l => l.id === label);
                     return (
                       <span
                         key={label}
-                        className={`${labelConfig?.color || 'bg-gray-500'} text-white text-xs px-3 py-1 rounded-full`}
+                        className={`${labelConfig?.color || 'bg-gradient-to-r from-gray-500 to-gray-600'} text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-md`}
                       >
                         {labelConfig?.name || label}
                       </span>
@@ -1257,46 +1369,46 @@ function AccountDetailModal({
               </div>
             )}
             {account.notes && (
-              <div className="mt-3">
-                <div className="text-sm text-gray-600 mb-1">Notes:</div>
-                <p className="text-sm text-gray-700">{account.notes}</p>
+              <div className="mt-4">
+                <div className="text-sm text-gray-600 dark:text-gray-400 font-semibold mb-1">Notes:</div>
+                <p className="text-sm text-gray-700 dark:text-gray-300 italic border-l-4 border-blue-500 pl-4">{account.notes}</p>
               </div>
             )}
           </div>
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{contacts.length}</div>
-              <div className="text-sm text-gray-600">Contacts</div>
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-center text-white shadow-lg">
+              <div className="text-3xl font-bold mb-1">{contacts.length}</div>
+              <div className="text-sm font-medium opacity-90">Contacts</div>
             </div>
-            <div className="bg-green-50 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{activities.length}</div>
-              <div className="text-sm text-gray-600">Activities</div>
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-center text-white shadow-lg">
+              <div className="text-3xl font-bold mb-1">{activities.length}</div>
+              <div className="text-sm font-medium opacity-90">Activities</div>
             </div>
-            <div className="bg-purple-50 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-purple-600">${totalSales.toLocaleString()}</div>
-              <div className="text-sm text-gray-600">Total Sales</div>
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-center text-white shadow-lg">
+              <div className="text-3xl font-bold mb-1">${totalSales.toLocaleString()}</div>
+              <div className="text-sm font-medium opacity-90">Total Sales</div>
             </div>
           </div>
 
           {/* Quick Actions */}
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-3">
             <button
               onClick={onAddContact}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+              className="px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all text-sm font-bold shadow-lg transform hover:scale-105"
             >
               Add Contact
             </button>
             <button
               onClick={onAddActivity}
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+              className="px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all text-sm font-bold shadow-lg transform hover:scale-105"
             >
               Log Activity
             </button>
             <button
               onClick={onAddSale}
-              className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
+              className="px-4 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all text-sm font-bold shadow-lg transform hover:scale-105"
             >
               Record Sale
             </button>
@@ -1305,17 +1417,17 @@ function AccountDetailModal({
           {/* Contacts */}
           {contacts.length > 0 && (
             <div>
-              <h3 className="font-semibold text-gray-800 mb-3">Contacts ({contacts.length})</h3>
-              <div className="space-y-2">
+              <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-3 text-lg">Contacts ({contacts.length})</h3>
+              <div className="space-y-3">
                 {contacts.map((contact) => (
-                  <div key={contact.id} className="bg-gray-50 rounded-lg p-3">
-                    <div className="font-medium text-gray-800">{contact.name}</div>
-                    {contact.title && <div className="text-sm text-gray-600">{contact.title}</div>}
-                    <div className="flex gap-4 mt-2 text-sm text-gray-600">
+                  <div key={contact.id} className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 border-2 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-400 transition-all">
+                    <div className="font-bold text-gray-800 dark:text-gray-200">{contact.name}</div>
+                    {contact.title && <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">{contact.title}</div>}
+                    <div className="flex gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
                       {contact.email && <span>{contact.email}</span>}
                       {contact.phone && <span>{contact.phone}</span>}
                     </div>
-                    {contact.notes && <div className="text-sm text-gray-600 mt-2">{contact.notes}</div>}
+                    {contact.notes && <div className="text-sm text-gray-600 dark:text-gray-400 mt-2 italic">{contact.notes}</div>}
                   </div>
                 ))}
               </div>
@@ -1325,18 +1437,18 @@ function AccountDetailModal({
           {/* Activities */}
           {activities.length > 0 && (
             <div>
-              <h3 className="font-semibold text-gray-800 mb-3">Recent Activities ({activities.length})</h3>
-              <div className="space-y-2">
+              <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-3 text-lg">Recent Activities ({activities.length})</h3>
+              <div className="space-y-3">
                 {activities.slice(0, 5).map((activity) => (
-                  <div key={activity.id} className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-gray-800">{activity.type}</span>
-                      <span className="text-xs text-gray-500">
+                  <div key={activity.id} className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 border-2 border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-gray-800 dark:text-gray-200">{activity.type}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                         {activity.date?.toDate?.()?.toLocaleDateString() || 'Just now'}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600">{activity.notes}</p>
-                    <div className="text-xs text-gray-500 mt-1">By: {activity.createdBy}</div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{activity.notes}</p>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">By: {activity.createdBy}</div>
                   </div>
                 ))}
               </div>
@@ -1346,16 +1458,16 @@ function AccountDetailModal({
           {/* Sales */}
           {sales.length > 0 && (
             <div>
-              <h3 className="font-semibold text-gray-800 mb-3">Sales History ({sales.length})</h3>
-              <div className="space-y-2">
+              <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-3 text-lg">Sales History ({sales.length})</h3>
+              <div className="space-y-3">
                 {sales.map((sale) => (
-                  <div key={sale.id} className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-gray-800">{sale.product}</span>
-                      <span className="font-bold text-green-600">${sale.amount.toLocaleString()}</span>
+                  <div key={sale.id} className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-700 dark:to-gray-800 rounded-xl p-4 border-2 border-green-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-gray-800 dark:text-gray-200">{sale.product}</span>
+                      <span className="font-bold text-green-600 dark:text-green-400 text-lg">${sale.amount.toLocaleString()}</span>
                     </div>
-                    {sale.notes && <p className="text-sm text-gray-600">{sale.notes}</p>}
-                    <div className="text-xs text-gray-500 mt-1">
+                    {sale.notes && <p className="text-sm text-gray-600 dark:text-gray-400">{sale.notes}</p>}
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                       {sale.date?.toDate?.()?.toLocaleDateString() || 'Just now'} • By: {sale.createdBy}
                     </div>
                   </div>
@@ -1380,7 +1492,7 @@ function DashboardView({ accounts, sales, activities, contacts }) {
       name: stage.name,
       count: stageAccounts.length,
       value: stageAccounts.reduce((sum, acc) => sum + (acc.value || 0), 0),
-      color: stage.color
+      gradient: stage.color
     };
   });
 
@@ -1393,56 +1505,64 @@ function DashboardView({ accounts, sales, activities, contacts }) {
   return (
     <div className="space-y-6">
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Total Accounts</h3>
-            <Users className="w-5 h-5 text-blue-600" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border-2 border-blue-100 dark:border-gray-600 transform hover:scale-105 transition-all">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-gray-600 dark:text-gray-200">Total Accounts</h3>
+            <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
-          <div className="text-3xl font-bold text-gray-800">{accounts.length}</div>
+          <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            {accounts.length}
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Pipeline Value</h3>
-            <TrendingUp className="w-5 h-5 text-purple-600" />
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border-2 border-purple-100 dark:border-gray-600 transform hover:scale-105 transition-all">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-gray-600 dark:text-gray-200">Pipeline Value</h3>
+            <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />
           </div>
-          <div className="text-3xl font-bold text-gray-800">${totalPipelineValue.toLocaleString()}</div>
+          <div className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            ${totalPipelineValue.toLocaleString()}
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Total Revenue</h3>
-            <DollarSign className="w-5 h-5 text-green-600" />
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border-2 border-green-100 dark:border-gray-600 transform hover:scale-105 transition-all">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-gray-600 dark:text-gray-200">Total Revenue</h3>
+            <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
           </div>
-          <div className="text-3xl font-bold text-gray-800">${totalRevenue.toLocaleString()}</div>
+          <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+            ${totalRevenue.toLocaleString()}
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Activities</h3>
-            <Calendar className="w-5 h-5 text-orange-600" />
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border-2 border-orange-100 dark:border-gray-600 transform hover:scale-105 transition-all">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-gray-600 dark:text-gray-200">Activities</h3>
+            <Calendar className="w-6 h-6 text-orange-600 dark:text-orange-400" />
           </div>
-          <div className="text-3xl font-bold text-gray-800">{activities.length}</div>
+          <div className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+            {activities.length}
+          </div>
         </div>
       </div>
 
       {/* Pipeline by Stage */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Pipeline by Stage</h3>
-        <div className="space-y-3">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border-2 border-gray-100 dark:border-gray-600">
+        <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Pipeline by Stage</h3>
+        <div className="space-y-4">
           {stageStats.map((stat) => (
-            <div key={stat.name}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">{stat.name}</span>
-                <span className="text-sm text-gray-600">
+            <div key={stat.name} className="group">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-200">{stat.name}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400 font-semibold">
                   {stat.count} accounts • ${stat.value.toLocaleString()}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
                 <div
-                  className={`${stat.color} h-2 rounded-full`}
-                  style={{ width: `${(stat.value / totalPipelineValue) * 100}%` }}
+                  className={`bg-gradient-to-r ${stat.gradient} h-3 rounded-full transition-all duration-500 group-hover:scale-105`}
+                  style={{ width: `${totalPipelineValue > 0 ? (stat.value / totalPipelineValue) * 100 : 0}%` }}
                 />
               </div>
             </div>
@@ -1452,15 +1572,15 @@ function DashboardView({ accounts, sales, activities, contacts }) {
 
       {/* Missing Items Overview */}
       {labelStats.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Items Requiring Attention</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border-2 border-gray-100 dark:border-gray-600">
+          <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Items Requiring Attention</h3>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {labelStats.map((stat) => (
-              <div key={stat.name} className="text-center">
-                <div className={`${stat.color} text-white rounded-lg p-4 mb-2`}>
-                  <div className="text-2xl font-bold">{stat.count}</div>
+              <div key={stat.name} className="text-center transform hover:scale-110 transition-all">
+                <div className={`${stat.color} text-white rounded-2xl p-6 mb-3 shadow-lg`}>
+                  <div className="text-3xl font-bold">{stat.count}</div>
                 </div>
-                <div className="text-sm text-gray-600">{stat.name}</div>
+                <div className="text-sm font-semibold text-gray-600 dark:text-gray-200">{stat.name}</div>
               </div>
             ))}
           </div>
@@ -1468,25 +1588,25 @@ function DashboardView({ accounts, sales, activities, contacts }) {
       )}
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
-        <div className="space-y-3">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border-2 border-gray-100 dark:border-gray-600">
+        <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Recent Activity</h3>
+        <div className="space-y-4">
           {activities.slice(0, 10).map((activity) => {
             const account = accounts.find(acc => acc.id === activity.accountId);
             return (
-              <div key={activity.id} className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0">
-                <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-blue-600" />
+              <div key={activity.id} className="flex items-start gap-4 p-4 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-700 dark:to-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-400 transition-all">
+                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <FileText className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-gray-800">{activity.type}</span>
-                    <span className="text-sm text-gray-500">•</span>
-                    <span className="text-sm text-gray-600">{account?.name || 'Unknown Account'}</span>
+                    <span className="font-bold text-gray-800 dark:text-gray-200">{activity.type}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">•</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">{account?.name || 'Unknown Account'}</span>
                   </div>
-                  <p className="text-sm text-gray-600">{activity.notes}</p>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                    <span>{activity.createdBy}</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{activity.notes}</p>
+                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    <span className="font-medium">{activity.createdBy}</span>
                     <span>•</span>
                     <span>{activity.date?.toDate?.()?.toLocaleDateString() || 'Just now'}</span>
                   </div>
